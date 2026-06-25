@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@sentry/vue": "^6.19.7"
+  }
+}

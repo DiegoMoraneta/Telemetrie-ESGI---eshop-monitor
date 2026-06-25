@@ -1,0 +1,81 @@
+services:
+  # ────────────────────────────────
+  glitchtip_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: glitchtip
+    volumes:
+      - glitchtip_pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+
+  glitchtip_migrate:
+    image: glitchtip/glitchtip:latest
+    depends_on:
+      - glitchtip_db
+    command: python manage.py migrate
+    environment:
+      DATABASE_URL: postgresql://glitchtip:glitchtip@glitchtip_db/glitchtip
+      SECRET_KEY: secret_local
+
+  glitchtip_web:
+    image: glitchtip/glitchtip:latest
+    depends_on:
+      - glitchtip_db
+      - redis
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://glitchtip:glitchtip@glitchtip_db/glitchtip
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: secret_local
+      EMAIL_URL: consolemail://
+      GLITCHTIP_DOMAIN: http://localhost:8000
+      PORT: 8000
+      ENABLE_REGISTRATION: "True"
+
+  glitchtip_worker:
+    image: glitchtip/glitchtip:latest
+    depends_on:
+      - glitchtip_db
+      - redis
+    command: ./bin/run-celery-with-beat.sh
+    environment:
+      DATABASE_URL: postgresql://glitchtip:glitchtip@glitchtip_db/glitchtip
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: secret_local
+
+  # ──────────────────────────────
+  umami_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: umami
+    volumes:
+      - umami_pg_data:/var/lib/postgresql/data
+
+  umami:
+    image: umamisoftware/umami:postgresql-latest
+    depends_on:
+      - umami_db
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:umami@umami_db:5432/umami
+      APP_SECRET: secret_local
+    
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+
+volumes:
+  glitchtip_pg_data:
+  umami_pg_data:
+  
