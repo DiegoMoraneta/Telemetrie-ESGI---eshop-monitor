@@ -27,36 +27,29 @@
 		paying.value = true;
 		errorMsg.value = "";
 
-		await Sentry.startSpan({ name: "submit-payment-checkout", op: "payment.submit" }, async () => {
-			try {
-				// Simule un délai réseau pour l'appel de l'API de paiement
-				await new Promise((resolve) => setTimeout(resolve, 800));
+		try {
+			// Simule un délai réseau pour l'appel de l'API de paiement
+			await new Promise((resolve) => setTimeout(resolve, 800));
 
-				// Simule une panne réaliste (1 fois sur 3)
-				if (Math.random() < 1 / 3) {
-					throw new TypeError('Cannot read properties of undefined (reading "cardToken")');
-				}
-
-				// Tracking des événements personnalisés avec Umami
-				if (window.umami) {
-					window.umami.track("checkout_success", { cart_total: cart.total, revenue: cart.total });
-				}
-
-				// Vider le panier et rediriger vers la confirmation de commande
-				cart.clear();
-				router.push("/order-confirmation");
-			} catch (err) {
-				// Capture de l'exception avec toutes ses métadonnées dans GlitchTip
-				Sentry.captureException(err);
-				errorMsg.value = "Paiement échoué. Réessayez.";
-				paying.value = false;
-
-				// Propager l'erreur pour marquer le Span Sentry comme échoué (erreur)
-				throw err;
+			// Simule une panne réaliste (1 fois sur 3)
+			if (Math.random() < 1 / 3) {
+				throw new TypeError('Cannot read properties of undefined (reading "cardToken")');
 			}
-		}).catch(() => {
-			// Catch l'erreur pour éviter que le rejet non géré ne plante l'application
-			// L'erreur elle est déjà capturée par Sentry en interne
-		});
+
+			// Tracking des événements personnalisés avec Umami
+			if (window.umami) {
+				window.umami.track("checkout_success", { cart_total: cart.total, revenue: cart.total });
+			}
+
+			// Vider le panier et rediriger vers la confirmation de commande
+			cart.clear();
+			router.push("/order-confirmation");
+		} catch (err) {
+			// Capture de l'exception avec toutes ses métadonnées dans GlitchTip
+			Sentry.captureException(err);
+
+			// Arrêt de l'indicateur de chargement et affichage du message d'erreur.
+			paying.value = false; errorMsg.value = "Paiement échoué. Réessayez.";
+		}
 	}
 </script>
