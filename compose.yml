@@ -47,7 +47,7 @@ services:
         depends_on:
             - umami_db
         ports:
-            - "3001:3000"
+            - "3000:3000"
         environment:
             DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-umami}@umami_db:5432/umami
             APP_SECRET: ${UMAMI_APP_SECRET:-secret_local}
@@ -98,3 +98,4 @@ volumes:
     glitchtip_pg_data:
     glitchtip_uploads:
     umami_pg_data:
+
