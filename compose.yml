@@ -1,132 +1,100 @@
 services:
-  # ─────────────────────────────────────────────────────────────────────────
-  # GLITCHTIP : Stack de centralisation et de suivi des exceptions applicatives
-  # ─────────────────────────────────────────────────────────────────────────
+    # Service GlitchTip permettant de recueillir et de gérer les erreurs de l'application
+    glitchtip:
+        image: glitchtip/glitchtip:latest
+        container_name: glitchtip_web
+        depends_on:
+            - glitchtip_db
+            - redis
+        ports:
+            - "8000:8000"
+        environment:
+            DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip}@glitchtip_db/glitchtip
+            REDIS_URL: redis://redis:6379/0
+            SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
+            EMAIL_URL: consolemail://
+            GLITCHTIP_DOMAIN: http://localhost:8000
+            PORT: 8000
+            ENABLE_REGISTRATION: "True"
+        volumes:
+            - glitchtip_uploads:/code/uploads
+        restart: unless-stopped
 
-  # Base de données PostgreSQL dédiée à GlitchTip
-  glitchtip_db:
-    image: postgres:15
-    container_name: glitchtip_db
-    environment:
-      POSTGRES_DB: glitchtip
-      POSTGRES_USER: glitchtip
-      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-glitchtip}
-    volumes:
-      - glitchtip_pg_data:/var/lib/postgresql/data
-    restart: unless-stopped
+    # Base de données PostgreSQL dédiée à GlitchTip
+    glitchtip_db:
+        image: postgres:15
+        container_name: glitchtip_db
+        environment:
+            POSTGRES_DB: glitchtip
+            POSTGRES_USER: glitchtip
+            POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-glitchtip}
+        volumes:
+            - glitchtip_pg_data:/var/lib/postgresql/data
+        restart: unless-stopped
 
-  # Service de cache et message broker pour les tâches asynchrones de GlitchTip
-  redis:
-    image: redis:7
-    container_name: glitchtip_redis
-    restart: unless-stopped
+    # Conteneur Redis permettant de mettre en cache et de gérer les messages de GlitchTip
+    redis:
+        image: redis:7
+        container_name: glitchtip_redis
+        restart: unless-stopped
 
-  # Conteneur éphémère de migration pour initialiser et mettre à jour le schéma de la base GlitchTip
-  glitchtip_migrate:
-    image: glitchtip/glitchtip:latest
-    container_name: glitchtip_migration
-    depends_on:
-      - glitchtip_db
-    command: python manage.py migrate
-    environment:
-      DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip}@glitchtip_db/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
+    # --------------------------------------------------------------------------------
 
-  # Serveur web principal de GlitchTip (Interface d'administration et endpoint de réception des erreurs DSN)
-  glitchtip_web:
-    image: glitchtip/glitchtip:latest
-    container_name: glitchtip_web
-    depends_on:
-      - glitchtip_db
-      - redis
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip}@glitchtip_db/glitchtip
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
-      EMAIL_URL: consolemail://
-      GLITCHTIP_DOMAIN: http://localhost:8000
-      PORT: 8000
-      ENABLE_REGISTRATION: "True"
-    restart: unless-stopped
+    # Service Umami permettant de tracker et d'analyser les données de l'application
+    umami:
+        image: umamisoftware/umami:postgresql-latest
+        container_name: umami_web
+        depends_on:
+            - umami_db
+        ports:
+            - "3001:3000"
+        environment:
+            DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-umami}@umami_db:5432/umami
+            APP_SECRET: ${UMAMI_APP_SECRET:-secret_local}
+        restart: unless-stopped
 
-  # Worker Celery pour exécuter les tâches asynchrones de GlitchTip (envoi d'e-mails, agrégation d'alertes)
-  glitchtip_worker:
-    image: glitchtip/glitchtip:latest
-    container_name: glitchtip_worker
-    depends_on:
-      - glitchtip_db
-      - redis
-    command: ./bin/run-celery-with-beat.sh
-    environment:
-      DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip}@glitchtip_db/glitchtip
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
-    restart: unless-stopped
+    # Base de données PostgreSQL dédiée à Umami
+    umami_db:
+        image: postgres:15
+        container_name: umami_db
+        environment:
+            POSTGRES_DB: umami
+            POSTGRES_USER: umami
+            POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:-umami}
+        volumes:
+            - umami_pg_data:/var/lib/postgresql/data
+        restart: unless-stopped
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # UMAMI : Outil d'analytics web respectueux de la vie privée (sans cookies)
-  # ─────────────────────────────────────────────────────────────────────────
+    # --------------------------------------------------------------------------------
 
-  # Base de données PostgreSQL dédiée à Umami
-  umami_db:
-    image: postgres:15
-    container_name: umami_db
-    environment:
-      POSTGRES_DB: umami
-      POSTGRES_USER: umami
-      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:-umami}
-    volumes:
-      - umami_pg_data:/var/lib/postgresql/data
-    restart: unless-stopped
+    # Conteneur pour compiler l'application Vue 3 au démarrage
+    app_builder:
+        image: node:20-alpine
+        container_name: app_builder
+        working_dir: /app
+        volumes:
+            - ./app:/app
+        environment:
+            - VITE_GLITCHTIP_DSN=${VITE_GLITCHTIP_DSN}
+            - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
+            - VITE_UMAMI_URL=${VITE_UMAMI_URL}
+        command: sh -c "npm install && npm run build"
 
-  # Service Umami servant le dashboard et collectant les événements de tracking
-  umami:
-    image: umamisoftware/umami:postgresql-latest
-    container_name: umami_web
-    depends_on:
-      - umami_db
-    ports:
-      - "3001:3000"
-    environment:
-      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-umami}@umami_db:5432/umami
-      APP_SECRET: ${UMAMI_APP_SECRET:-secret_local}
-    restart: unless-stopped
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # APPLICATION CLIENT (E-SHOP)
-  # ─────────────────────────────────────────────────────────────────────────
-
-  # Conteneur éphémère pour compiler l'application Vue 3 au démarrage
-  # Il installe les dépendances et génère les fichiers statiques de production dans le volume partagé
-  app_builder:
-    image: node:20-alpine
-    container_name: app_builder
-    working_dir: /app
-    volumes:
-      - ./app:/app
-    environment:
-      - VITE_GLITCHTIP_DSN=${VITE_GLITCHTIP_DSN}
-      - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
-      - VITE_UMAMI_URL=${VITE_UMAMI_URL}
-    command: sh -c "npm install && npm run build"
-
-  # Serveur web Caddy pour servir les fichiers statiques compilés de l'application
-  # Il attend que la compilation par 'app_builder' soit terminée avec succès
-  app_server:
-    image: caddy:alpine
-    container_name: app_server
-    ports:
-      - "80:80"
-    depends_on:
-      app_builder:
-        condition: service_completed_successfully
-    volumes:
-      - ./app/dist:/usr/share/caddy
-    command: caddy file-server --root /usr/share/caddy --listen :80
-    restart: unless-stopped
+    # Conteneur pour servir les fichiers statiques compilés de l'application (Caddy)
+    app_server:
+        image: caddy:alpine
+        container_name: app_server
+        ports:
+            - "80:80"
+        depends_on:
+            app_builder:
+                condition: service_completed_successfully
+        volumes:
+            - ./app/dist:/usr/share/caddy
+        command: caddy file-server --root /usr/share/caddy --listen :80
+        restart: unless-stopped
 
 volumes:
-  glitchtip_pg_data:
-  umami_pg_data:
+    glitchtip_pg_data:
+    glitchtip_uploads:
+    umami_pg_data:
