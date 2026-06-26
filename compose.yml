@@ -11,16 +11,14 @@ services:
         environment:
             DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip}@glitchtip_db/glitchtip
             REDIS_URL: redis://redis:6379/0
-            SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
+            SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
             EMAIL_URL: consolemail://
-            GLITCHTIP_DOMAIN: http://localhost:8000
+            GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN}
             ENABLE_USER_REGISTRATION: "False"
+            SERVER_ROLE: all_in_one
         volumes:
             - glitchtip_uploads:/code/uploads
-        command: sh -c "./manage.py migrate && ./bin/start.sh"
         restart: unless-stopped
-
-
 
     # Base de données PostgreSQL dédiée à GlitchTip
     glitchtip_db:
@@ -52,7 +50,7 @@ services:
             - "3000:3000"
         environment:
             DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-umami}@umami_db:5432/umami
-            APP_SECRET: ${UMAMI_APP_SECRET:-secret_local}
+            APP_SECRET: ${UMAMI_APP_SECRET}
         restart: unless-stopped
 
     # Base de données PostgreSQL dédiée à Umami
@@ -62,7 +60,7 @@ services:
         environment:
             POSTGRES_DB: umami
             POSTGRES_USER: umami
-            POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:-umami}
+            POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
         volumes:
             - umami_pg_data:/var/lib/postgresql/data
         restart: unless-stopped
@@ -93,11 +91,10 @@ services:
                 condition: service_completed_successfully
         volumes:
             - ./app/dist:/usr/share/caddy
-        command: caddy file-server --root /usr/share/caddy --listen :80
+            - ./Caddyfile:/etc/caddy/Caddyfile
         restart: unless-stopped
 
 volumes:
     glitchtip_pg_data:
     glitchtip_uploads:
     umami_pg_data:
-
