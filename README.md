@@ -53,18 +53,13 @@ Copiez les valeurs générées dans votre fichier `.env`.
    ```bash
    docker compose up -d
    ```
-   *Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application front-end. Elle sera servie sur le port 80 dès que la compilation sera terminée.*
+   *Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application front-end. Elle sera servie sur le port 80 dès que la compilation sera terminée. Les migrations de GlitchTip s'exécutent également de manière autonome.*
 
-2. Initialisez la base de données de **GlitchTip** en appliquant les migrations :
-   ```bash
-   docker compose exec glitchtip ./manage.py migrate
-   ```
-
-3. Créez votre compte administrateur initial pour **GlitchTip** :
+2. Créez votre compte administrateur initial pour **GlitchTip** :
    ```bash
    docker compose exec glitchtip ./manage.py createsuperuser
    ```
-   *Suivez les instructions dans votre terminal pour configurer votre email et votre mot de passe.*
+   *Important : Saisissez une adresse email valide avec un domaine standard contenant un point (ex: `admin@example.com`). Les domaines comme `@localhost` ou `@localhost.local` sont bloqués par les règles de validation strictes de GlitchTip.*
 
 ---
 

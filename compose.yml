@@ -14,9 +14,13 @@ services:
             SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
             EMAIL_URL: consolemail://
             GLITCHTIP_DOMAIN: http://localhost:8000
+            ENABLE_USER_REGISTRATION: "False"
         volumes:
             - glitchtip_uploads:/code/uploads
+        command: sh -c "./manage.py migrate && ./bin/start.sh"
         restart: unless-stopped
+
+
 
     # Base de données PostgreSQL dédiée à GlitchTip
     glitchtip_db:
