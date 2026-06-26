@@ -50,16 +50,17 @@ Copiez les valeurs générées dans votre fichier `.env`.
 ### Étape 2 : Lancement et initialisation de la stack
 
 1. Démarrez tous les conteneurs à l'aide de Docker Compose :
-   ```bash
-   docker compose up -d
-   ```
-   *Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application front-end. Elle sera servie sur le port 80 dès que la compilation sera terminée. Les migrations de GlitchTip s'exécutent également de manière autonome.*
+
+    ```bash
+    docker compose up -d
+    ```
+
+    _Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application front-end. Elle sera servie sur le port 80 dès que la compilation sera terminée. Les migrations de GlitchTip s'exécutent également de manière autonome._
 
 2. Créez votre compte administrateur initial pour **GlitchTip** :
-   ```bash
-   docker compose exec glitchtip ./manage.py createsuperuser
-   ```
-   *Important : Saisissez une adresse email valide avec un domaine standard contenant un point (ex: `admin@example.com`). Les domaines comme `@localhost` ou `@localhost.local` sont bloqués par les règles de validation strictes de GlitchTip.*
+    - **Option A (Recommandée) :** Via l'interface web. Rendez-vous sur `http://localhost:8000/register` et créez un compte. Le premier utilisateur à s'inscrire devient automatiquement superutilisateur.
+    - **Option B (Console) :** Via la ligne de commande `docker compose exec glitchtip ./manage.py createsuperuser` si nécessaire.
+      _Important : Que ce soit via le site ou la console, saisissez impérativement une adresse email valide avec un domaine au format publique (ex: `admin@example.com`). Les domaines comme `@localhost` ou `@localhost.local` provoque des bugs dans GlitchTip._
 
 ---
 
@@ -67,30 +68,31 @@ Copiez les valeurs générées dans votre fichier `.env`.
 
 #### 1. Configurer GlitchTip (Erreurs & Performance)
 
-1. Rendez-vous sur [http://localhost:8000](http://localhost:8000) et connectez-vous avec le compte administrateur créé à l'étape précédente.
+1. Rendez-vous sur [http://localhost:8000](http://localhost:8000) et connectez-vous avec votre compte administrateur.
 2. Créez une **Organisation** (ex: `Eco-Hardware-Org`).
 3. Créez un nouveau **Projet** en sélectionnant la plateforme **Vue**.
-4. GlitchTip vous fournit alors une clé **DSN** (ex: `http://1133eb47cee...` ).
-5. Copiez cette valeur dans la variable `VITE_GLITCHTIP_DSN` de votre fichier `.env` à la racine.
+4. GlitchTip vous fournira alors une clé **DSN**.
+5. Extrayez la **clé publique** de ce **DSN** (le texte situé entre `http://` et `@`).
+6. Copiez cette valeur dans la variable `GLITCHTIP_PUBLIC_KEY` de votre fichier `.env` à la racine.
 
 #### 2. Configurer Umami (Analytics)
 
 1. Rendez-vous sur [http://localhost:3000](http://localhost:3000).
 2. Connectez-vous avec les identifiants par défaut :
-   - **Nom d'utilisateur :** `admin`
-   - **Mot de passe :** `umami`
-   *(Important : modifiez immédiatement ce mot de passe par défaut dans les paramètres de votre profil pour des raisons de sécurité).*
+    - **Nom d'utilisateur :** `admin`
+    - **Mot de passe :** `umami`
+      _(Important : modifiez immédiatement ce mot de passe par défaut dans les paramètres de votre profil pour des raisons de sécurité)._
 3. Allez dans les paramètres et ajoutez un **Site Web** :
     - **Nom :** `Eco-Hardware`
     - **Domaine :** `localhost`
 4. Cliquez sur "Edit" puis sur "Data" pour récupérer le **Website ID** (un identifiant de type UUID).
-5. Copiez cette valeur dans la variable `VITE_UMAMI_WEBSITE_ID` de votre fichier `.env`.
+5. Copiez cette valeur dans la variable `UMAMI_WEBSITE_ID` de votre fichier `.env`.
 
 ---
 
 ### Étape 4 : Appliquer les configurations de suivi
 
-Une fois les variables `VITE_GLITCHTIP_DSN` et `VITE_UMAMI_WEBSITE_ID` correctement renseignées dans votre fichier `.env`, relancez le conteneur de build pour recompiler l'application avec les nouveaux jetons de suivi :
+Une fois les variables `GLITCHTIP_PUBLIC_KEY` et `UMAMI_WEBSITE_ID` correctement renseignées dans votre fichier `.env`, relancez le conteneur de build pour recompiler l'application avec les nouveaux jetons de suivi :
 
 ```bash
 docker compose up app_builder
@@ -117,9 +119,9 @@ Si vous souhaitez travailler sur le code de l'application Vue 3 avec un recharge
 3. Créez un fichier `.env` local dans le dossier `app/` contenant vos variables de suivi (Vite a besoin de lire ces variables en local) :
     ```env
     # Contenu de app/.env
-    VITE_GLITCHTIP_DSN=http://votre-dsn-glitchtip@localhost:8000/1
-    VITE_UMAMI_WEBSITE_ID=votre-website-id-umami
-    VITE_UMAMI_URL=http://localhost:3000
+    GLITCHTIP_PUBLIC_KEY=votre-cle-publique-glitchtip
+    UMAMI_WEBSITE_ID=votre-website-id-umami
+    UMAMI_URL=http://localhost:3000
     ```
 4. Lancez le serveur de développement de Vite :
     ```bash
@@ -145,4 +147,3 @@ L'application transmet automatiquement des événements clés tout au long du pa
 - **Erreur simulée :** Lors du paiement dans le composant `Checkout.vue`, une erreur de type `TypeError` survient volontairement 1 fois sur 3 afin de générer une exception visible dans GlitchTip.
 - **Performance :** L'application mesure le temps de traitement de l'opération de paiement à l'aide d'un Span de performance Sentry nommé `payment.submit`.
 - **Respect du RGPD :** La stack est configurée pour ne pas collecter les adresses IP (`sendDefaultPii: false`) et masque automatiquement toute saisie accidentelle d'adresses e-mail dans les messages d'erreur.
-
