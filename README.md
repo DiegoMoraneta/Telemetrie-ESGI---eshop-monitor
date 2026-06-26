@@ -47,15 +47,24 @@ Copiez les valeurs générées dans votre fichier `.env`.
 
 ---
 
-### Étape 2 : Lancement initial de la stack
+### Étape 2 : Lancement et initialisation de la stack
 
-Démarrez tous les conteneurs à l'aide de Docker Compose :
+1. Démarrez tous les conteneurs à l'aide de Docker Compose :
+   ```bash
+   docker compose up -d
+   ```
+   *Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application front-end. Elle sera servie sur le port 80 dès que la compilation sera terminée.*
 
-```bash
-docker compose up -d
-```
+2. Initialisez la base de données de **GlitchTip** en appliquant les migrations :
+   ```bash
+   docker compose exec glitchtip ./manage.py migrate
+   ```
 
-_Note : Au premier démarrage, le conteneur éphémère `app_builder` va compiler automatiquement l'application. Elle sera servie sur le port 80 dès que la compilation sera terminée._
+3. Créez votre compte administrateur initial pour **GlitchTip** :
+   ```bash
+   docker compose exec glitchtip ./manage.py createsuperuser
+   ```
+   *Suivez les instructions dans votre terminal pour configurer votre email et votre mot de passe.*
 
 ---
 
@@ -63,8 +72,8 @@ _Note : Au premier démarrage, le conteneur éphémère `app_builder` va compile
 
 #### 1. Configurer GlitchTip (Erreurs & Performance)
 
-1. Rendez-vous sur [http://localhost:8000](http://localhost:8000).
-2. Créez un compte administrateur, puis créez une **Organisation** (ex: `Eco-Hardware-Org`).
+1. Rendez-vous sur [http://localhost:8000](http://localhost:8000) et connectez-vous avec le compte administrateur créé à l'étape précédente.
+2. Créez une **Organisation** (ex: `Eco-Hardware-Org`).
 3. Créez un nouveau **Projet** en sélectionnant la plateforme **Vue**.
 4. GlitchTip vous fournit alors une clé **DSN** (ex: `http://1133eb47cee...` ).
 5. Copiez cette valeur dans la variable `VITE_GLITCHTIP_DSN` de votre fichier `.env` à la racine.
@@ -72,7 +81,10 @@ _Note : Au premier démarrage, le conteneur éphémère `app_builder` va compile
 #### 2. Configurer Umami (Analytics)
 
 1. Rendez-vous sur [http://localhost:3000](http://localhost:3000).
-2. Connectez-vous avec les identifiants par défaut : **Nom d'utilisateur :** `admin` / **Mot de passe :** `umami`.
+2. Connectez-vous avec les identifiants par défaut :
+   - **Nom d'utilisateur :** `admin`
+   - **Mot de passe :** `umami`
+   *(Important : modifiez immédiatement ce mot de passe par défaut dans les paramètres de votre profil pour des raisons de sécurité).*
 3. Allez dans les paramètres et ajoutez un **Site Web** :
     - **Nom :** `Eco-Hardware`
     - **Domaine :** `localhost`

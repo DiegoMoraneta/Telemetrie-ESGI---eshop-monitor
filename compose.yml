@@ -14,8 +14,6 @@ services:
             SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-secret_local}
             EMAIL_URL: consolemail://
             GLITCHTIP_DOMAIN: http://localhost:8000
-            PORT: 8000
-            ENABLE_REGISTRATION: "True"
         volumes:
             - glitchtip_uploads:/code/uploads
         restart: unless-stopped
