@@ -1,68 +1,101 @@
-# Rapport d'Observabilité - E-Shop Monitor
+# Rapport d'observabilité - E-Shop Monitor
 
 Ce rapport présente l'analyse des données de télémétrie et d'analytics collectées sur notre plateforme d'e-commerce factice "Eco-Hardware" à l'aide de notre stack auto-hébergée.
 
----
-
-## 1. Analyse Analytics (Umami)
+## 1. La partie analytics (Umami)
 
 ### Tableau de bord général
-![Dashboard Umami](image-1.png)
 
-### Suivi des Événements Personnalisés
-![Événements Umami](image-2.png)
+![Dashboard Umami](unami-1.png)
 
-### Suivi du Tunnel de Conversion (Funnel)
+### Suivi des événements personnalisés
+
+![Événements Umami](unami-2.png)
+
+---
+
+### Suivi du tunnel de conversion
 
 Pendant la phase de simulation et de test, nous avons enregistré les interactions suivantes :
 
-- **Consulter un produit (`view_product`)** : 31 événements
-- **Ajouter au panier (`add_to_cart`)** : 68 événements
-- **Démarrer le paiement (`checkout_start`)** : 21 événements
-- **Paiement validé (`checkout_success`)** : 21 événements
+| Étape du tunnel      | Événement Umami    | Nombre d'événements |
+| :------------------- | :----------------- | :------------------ |
+| Consulter un produit | `view_product`     | 31                  |
+| Ajouter au panier    | `add_to_cart`      | 68                  |
+| Démarrer le paiement | `checkout_start`   | 21                  |
+| Paiement validé      | `checkout_success` | 21                  |
 
-### Analyse des Métriques Métier
+### Analyse des métriques métier
 
-1. **Taux de Rebond (Bounce Rate)** : **13 %**
-   * **Interprétation :** Un taux de rebond de 13 % sur la page d'accueil est excellent. Cela signifie que 87 % des visiteurs interagissent avec le site (clic sur un produit, navigation) après leur arrivée. Cela démontre une bonne attractivité du catalogue initial et un parcours utilisateur engageant dès la page d'accueil.
-
-2. **Taux de Conversion Global** :
-   $$\text{Taux de conversion} = \frac{\text{Nombre de checkout\_success}}{\text{Nombre de sessions uniques}} \times 100$$
-   $$\text{Calcul} : \frac{21}{8} \times 100 = 262.5\%$$
-   * **Analyse critique du biais :** Ce taux théorique anormalement élevé ($> 100\%$) s'explique par un biais méthodologique lors des tests : un petit nombre de testeurs (8 sessions uniques au total) ont effectué de multiples transactions (21 validations de commande) au cours de la même session. 
-   * **Projection en conditions réelles :** En production, avec un trafic utilisateur standard où chaque session unique correspond généralement à un acheteur unique avec un parcours d'achat unique, le taux de conversion global devrait osciller de façon réaliste entre **2 % et 5 %** pour un site e-commerce de matériel informatique.
-
-3. **Analyse de l'abandon (Tunnel d'achat) :**
-   * Dans notre simulation, le passage de l'étape `checkout_start` à `checkout_success` est de 100 % (21/21) pour les transactions réussies.
-   * On constate cependant une disproportion entre le nombre d'ajouts au panier (68) et l'initiation de commande (21), suggérant un fort taux d'abandon du panier (environ 69 % d'abandons de panier). Ce comportement est très fréquent en e-commerce et peut être optimisé en relançant les paniers abandonnés ou en simplifiant l'étape de validation du panier.
+1. **Taux de rebond (Bounce Rate)** : 13 %
+2. **Taux de conversion** : 262.5 %
+    - **Calcul :**
+      `Taux = (nombre de checkout_success / nombre de sessions totales) * 100`
+      `Calcul : (21 / 8) * 100 = 262.5 %`
+    - **Note :** Ce taux anormalement élevé (> 100 %) est dû au fait que nous avons simulé de multiples transactions (21 succès) au cours d'un petit nombre de sessions (8 sessions au total). En conditions réelles, ce taux se situerait plutôt entre 2 % et 5 %.
 
 ---
 
-## 2. Analyse Technique & Télémétrie des Erreurs (GlitchTip)
+## 2. Analyse technique & Télémétrie des erreurs (GlitchTip)
 
-### Erreur Capturée dans l'Interface
-![Exception GlitchTip](image.png)
+### Erreur capturée dans l'interface
 
-### Stack Trace Détaillée
-![Stack Trace](image-3.png)
+![Exception GlitchTip](glitchtip-1.png)
 
-### Diagnostic de l'Erreur Simulée
+### Détails d'une trace d'erreur
 
-* **Type de l'anomalie :** `TypeError`
-* **Message de l'erreur :** `Cannot read properties of undefined (reading "cardToken")`
-* **Localisation de l'erreur dans le code :** Fichier [Checkout.vue](file:///c:/Users/F%C3%A9lix%20Lhoste/Documents/DEV/%5BCOURS%5D/Telemetrie-ESGI---eshop-monitor/app/src/pages/Checkout.vue) au sein de la fonction asynchrone `handlePay`.
+![Stack Trace](glitchtip-2.png)
 
-### Résolution Technique à partir de l'Observabilité
+---
+
+### Diagnostic de l'erreur simulée
+
+- **Type de l'anomalie :** `TypeError`
+- **Message de l'erreur :** `Cannot read properties of undefined (reading "cardToken")`
+
+### Procédure pour reproduire l'erreur
+
+Pour reproduire volontairement ce bug dans l'application :
+
+1. Se rendre sur la page d'accueil de l'application (`http://localhost`).
+2. Cliquer sur un produit du catalogue pour ouvrir sa fiche détaillée.
+3. Cliquer sur le bouton `Ajouter au panier`.<br><br>
+4. Se diriger vers le panier via le lien de navigation en haut à droite.
+5. Cliquer sur le bouton `Passer la commande`.
+6. Cliquer sur le bouton `Payer`.
+
+En raison de la probabilité d'erreur simulée (1 chance sur 3), le paiement peut réussir (redirection vers la confirmation) ou bien échouer. Le cas échéant, réessayez l'opération. Lorsqu'il échoue, le message d'erreur `Paiement échoué. Réessayez.` s'affiche et l'erreur est immédiatement envoyée à GlitchTip.
+
+---
+
+### Résolution technique & Proposition de correction
 
 Grâce aux données remontées par GlitchTip, le développeur dispose de toutes les clés pour corriger rapidement le bug sans avoir à deviner la cause :
 
-1. **La Stack Trace :** Elle isole la ligne exacte de code ayant levé l'exception. Ici, le code tente d'accéder à la propriété `cardToken` sur un objet qui est indéfini (`undefined`). Cela indique une absence de vérification de la présence de l'objet de données de paiement avant son utilisation.
-2. **Les Breadcrumbs (Fils d'Ariane) :** L'historique d'activité de l'utilisateur montre qu'il a cliqué sur le bouton de soumission du formulaire de paiement juste avant le crash.
+1. **La Stack Trace :** Elle isole la ligne exacte de code ayant levé l'exception. Ici, le code tente d'accéder à la propriété `cardToken` sur un objet de transaction qui est indéfini (`undefined`).
+2. **Les Fils d'Ariane :** L'historique d'activité de l'utilisateur montre qu'il a cliqué sur le bouton de soumission du formulaire de paiement juste avant le crash.
 3. **Le Contexte Environnemental :** Les métadonnées de GlitchTip (OS, version du navigateur, appareil) permettent de valider s'il s'agit d'un bug spécifique à un navigateur (ex: Safari mobile) ou d'un bug général de logique applicative.
-4. **Action corrective :** Pour résoudre ce bug, le développeur doit s'assurer que l'objet contenant les informations de paiement est correctement initialisé et valider sa présence via un garde JavaScript :
-   ```javascript
-   // Exemple de correction
-   if (!paymentData || !paymentData.cardToken) {
-     throw new Error("Les informations de paiement sont incomplètes ou invalides.");
-   }
-   ```
+
+#### Proposition de Correction du Code :
+
+Pour corriger définitivement cette erreur dans le code réel, il convient de sécuriser l'accès à l'objet de paiement avant d'en lire les propriétés, soit via un garde conditionnel, soit via le chaînage optionnel (`?.`) :
+
+```javascript
+// Exemple de correction dans Checkout.vue (fonction handlePay) :
+try {
+	// Option 1 : Garde classique de validation
+	if (!paymentData || !paymentData.cardToken) {
+		throw new Error("Informations de paiement invalides ou manquantes.");
+	}
+
+	// Option 2 : Chaînage optionnel sécurisé
+	const token = paymentData?.cardToken;
+	if (!token) throw new Error("Token de carte manquant.");
+
+	// Logique d'appel API de paiement...
+} catch (err) {
+	Sentry.captureException(err);
+	errorMsg.value = "Le paiement n'a pas pu être traité. Veuillez vérifier vos coordonnées.";
+}
+```
+
