@@ -36,15 +36,15 @@
 				throw new TypeError('Cannot read properties of undefined (reading "cardToken")');
 			}
 
-			// Tracking des événements personnalisés avec Umami
+			// Tracking des événements personnalisés avec Umami si présent
 			if (window.umami) {
 				window.umami.track("checkout_success", { cart_total: cart.total, revenue: cart.total });
 			}
 
 			// Vider le panier et rediriger vers la confirmation de commande
-			cart.clear();
-			router.push("/order-confirmation");
+			cart.clear(); router.push("/order-confirmation");
 		} catch (err) {
+
 			// Capture de l'exception avec toutes ses métadonnées dans GlitchTip
 			Sentry.captureException(err);
 

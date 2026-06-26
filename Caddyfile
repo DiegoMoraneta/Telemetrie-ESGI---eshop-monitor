@@ -1,4 +1,9 @@
 :80 {
+	handle /_telemetry_secure_ingest_/send {
+		rewrite * /api/1/envelope/?sentry_key={$GLITCHTIP_PUBLIC_KEY}&sentry_version=10
+		reverse_proxy glitchtip:8000
+	}
+
 	handle {
 		root * /usr/share/caddy
 		try_files {path} /index.html

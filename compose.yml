@@ -75,9 +75,9 @@ services:
         volumes:
             - ./app:/app
         environment:
-            - VITE_GLITCHTIP_DSN=${VITE_GLITCHTIP_DSN}
-            - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
-            - VITE_UMAMI_URL=${VITE_UMAMI_URL}
+            - VITE_GLITCHTIP_PUBLIC_KEY=${GLITCHTIP_PUBLIC_KEY}
+            - VITE_UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
+            - VITE_UMAMI_URL=${UMAMI_URL}
         command: sh -c "npm install && npm run build"
 
     # Conteneur pour servir les fichiers statiques compilés de l'application (Caddy)
@@ -92,6 +92,8 @@ services:
         volumes:
             - ./app/dist:/usr/share/caddy
             - ./Caddyfile:/etc/caddy/Caddyfile
+        environment:
+            - GLITCHTIP_PUBLIC_KEY=${GLITCHTIP_PUBLIC_KEY}
         restart: unless-stopped
 
 volumes:
